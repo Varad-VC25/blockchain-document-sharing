@@ -1,0 +1,41 @@
+# Node Modules
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+
+# Environment Variables (NEVER commit these)
+.env
+frontend/.env
+backend/.env
+
+# Hardhat Artifacts (auto-generated, large files)
+artifacts/
+cache/
+typechain-types/
+
+# Upload Folder (temporary files)
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Log Files
+backend/logs/*.log
+!backend/logs/.gitkeep
+logs/
+*.log
+
+# OS System Files
+.DS_Store
+Thumbs.db
+
+# IDE / Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build Output
+frontend/dist/
+frontend/build/
+
+# Coverage Reports
+coverage/

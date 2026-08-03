@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Environment Variables
+.env
+
+# Uploaded Files (temporary storage)
+uploads/*
+!uploads/.gitkeep
+
+# Log Files
+logs/*.log
+!logs/.gitkeep
+
+# OS Files
+.DS_Store
+Thumbs.db
