@@ -1,8 +1,4 @@
-// ================================================================
-// SERVER.JS - Main Express Application Entry Point
-// ================================================================
 require("dotenv").config();
-
 const express = require("express");
 const helmet = require("helmet");
 const cors = require("cors");
@@ -10,13 +6,14 @@ const compression = require("compression");
 const mongoSanitize = require("express-mongo-sanitize");
 const hpp = require("hpp");
 const path = require("path");
+const mongoose = require("mongoose");
 
 const { logger, morganMiddleware } = require("./utils/logger");
 const { errorHandler, notFoundHandler } = require("./middleware/errorHandler");
 const { generalLimiter } = require("./middleware/rateLimiter");
+const { connectDB, disconnectDB } = require("./config/db");
 
 const app = express();
-
 const PORT = process.env.PORT || 5000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 
@@ -43,12 +40,9 @@ const corsOptions = {
   exposedHeaders: ["X-Total-Count", "X-Page-Count"],
 };
 app.use(cors(corsOptions));
-
 app.use("/api", generalLimiter);
-
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-
 app.use(mongoSanitize());
 app.use(hpp());
 app.use(compression());
@@ -77,6 +71,12 @@ app.get("/", (req, res) => {
 });
 
 app.get("/api/health", (req, res) => {
+  const dbStates = {
+    0: "Disconnected",
+    1: "Connected",
+    2: "Connecting",
+    3: "Disconnecting",
+  };
   res.status(200).json({
     success: true,
     message: "API is healthy",
@@ -84,10 +84,10 @@ app.get("/api/health", (req, res) => {
     uptime: process.uptime() + " seconds",
     memory: process.memoryUsage(),
     environment: NODE_ENV,
+    database: dbStates[mongoose.connection.readyState] || "Unknown",
   });
 });
 
-// Routes - uncommented as modules are built
 // app.use("/api/auth", require("./routes/authRoutes"));
 // app.use("/api/documents", require("./routes/documentRoutes"));
 // app.use("/api/share", require("./routes/shareRoutes"));
@@ -99,6 +99,7 @@ app.use(errorHandler);
 
 const startServer = async () => {
   try {
+    await connectDB();
     const server = app.listen(PORT, () => {
       logger.info("================================================");
       logger.info(" Blockchain Document Sharing API");
@@ -107,13 +108,11 @@ const startServer = async () => {
       logger.info("Server URL  : http://localhost:" + PORT);
       logger.info("Health Check: http://localhost:" + PORT + "/api/health");
       logger.info("================================================");
-      logger.info("MongoDB     : Not connected yet (Module 3)");
-      logger.info("Blockchain  : Not connected yet (Module 7)");
-      logger.info("================================================");
     });
 
-    const gracefulShutdown = (signal) => {
+    const gracefulShutdown = async (signal) => {
       logger.info(signal + " received. Starting graceful shutdown...");
+      await disconnectDB();
       server.close(() => {
         logger.info("HTTP server closed");
         process.exit(0);
@@ -128,25 +127,19 @@ const startServer = async () => {
     process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
     process.on("unhandledRejection", (reason) => {
-      logger.error("Unhandled Promise Rejection", {
-        reason: reason && reason.message ? reason.message : reason,
-      });
+      logger.error("Unhandled Promise Rejection: " + (reason && reason.message ? reason.message : reason));
     });
 
     process.on("uncaughtException", (error) => {
-      logger.error("Uncaught Exception - shutting down", {
-        message: error.message,
-        stack: error.stack,
-      });
+      logger.error("Uncaught Exception: " + error.message);
       process.exit(1);
     });
 
   } catch (error) {
-    logger.error("Failed to start server", { message: error.message });
+    logger.error("Failed to start server: " + error.message);
     process.exit(1);
   }
 };
 
 startServer();
-
 module.exports = app;
