@@ -1,18 +1,12 @@
-# Dependencies
 node_modules/
-
-# Environment Variables
 .env
 .env.local
 .env.production
-
-# Build Output
 dist/
 build/
-
-# OS Files
 .DS_Store
 Thumbs.db
-
-# Vite Cache
 .vite/
+.vscode/
+.idea/
+*.log
