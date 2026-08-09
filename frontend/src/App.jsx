@@ -9,11 +9,19 @@ import { TOAST_CONFIG } from "@config/constants";
 
 import ProtectedRoute from "@components/common/ProtectedRoute";
 import PublicRoute from "@components/common/PublicRoute";
+import DashboardLayout from "@components/layout/DashboardLayout";
 
 import Home from "@pages/Home";
 import Login from "@pages/auth/Login";
 import Register from "@pages/auth/Register";
 import Dashboard from "@pages/Dashboard";
+import Documents from "@pages/Documents";
+import Upload from "@pages/Upload";
+import SharedWithMe from "@pages/SharedWithMe";
+import CloudStorage from "@pages/CloudStorage";
+import AuditTrail from "@pages/AuditTrail";
+import VerifyDocument from "@pages/VerifyDocument";
+import Profile from "@pages/Profile";
 
 function App() {
   return (
@@ -24,7 +32,19 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+
+            {/* Protected routes with dashboard layout */}
+            <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/documents" element={<Documents />} />
+              <Route path="/upload" element={<Upload />} />
+              <Route path="/shared-with-me" element={<SharedWithMe />} />
+              <Route path="/cloud-storage" element={<CloudStorage />} />
+              <Route path="/audit-trail" element={<AuditTrail />} />
+              <Route path="/verify" element={<VerifyDocument />} />
+              <Route path="/profile" element={<Profile />} />
+            </Route>
+
             <Route path="*" element={
               <div className="min-h-screen flex items-center justify-center bg-white dark:bg-dark-950">
                 <div className="text-center">
