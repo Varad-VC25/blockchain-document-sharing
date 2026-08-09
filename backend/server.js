@@ -59,36 +59,25 @@ app.get("/", (req, res) => {
     version: "1.0.0",
     environment: NODE_ENV,
     timestamp: new Date().toISOString(),
-    endpoints: {
-      health: "GET /api/health",
-      auth: "/api/auth",
-      documents: "/api/documents",
-      share: "/api/share",
-      audit: "/api/audit",
-      user: "/api/user",
-    },
   });
 });
 
 app.get("/api/health", (req, res) => {
-  const dbStates = {
-    0: "Disconnected",
-    1: "Connected",
-    2: "Connecting",
-    3: "Disconnecting",
-  };
+  const dbStates = { 0: "Disconnected", 1: "Connected", 2: "Connecting", 3: "Disconnecting" };
   res.status(200).json({
     success: true,
     message: "API is healthy",
     timestamp: new Date().toISOString(),
     uptime: process.uptime() + " seconds",
-    memory: process.memoryUsage(),
     environment: NODE_ENV,
     database: dbStates[mongoose.connection.readyState] || "Unknown",
   });
 });
 
-// app.use("/api/auth", require("./routes/authRoutes"));
+// -- API Routes ----------------------------------------------------
+app.use("/api/auth", require("./routes/authRoutes"));
+
+// Future modules
 // app.use("/api/documents", require("./routes/documentRoutes"));
 // app.use("/api/share", require("./routes/shareRoutes"));
 // app.use("/api/audit", require("./routes/auditRoutes"));
@@ -107,6 +96,7 @@ const startServer = async () => {
       logger.info("Environment : " + NODE_ENV);
       logger.info("Server URL  : http://localhost:" + PORT);
       logger.info("Health Check: http://localhost:" + PORT + "/api/health");
+      logger.info("Auth API    : http://localhost:" + PORT + "/api/auth");
       logger.info("================================================");
     });
 
@@ -127,7 +117,7 @@ const startServer = async () => {
     process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
     process.on("unhandledRejection", (reason) => {
-      logger.error("Unhandled Promise Rejection: " + (reason && reason.message ? reason.message : reason));
+      logger.error("Unhandled Rejection: " + (reason && reason.message ? reason.message : reason));
     });
 
     process.on("uncaughtException", (error) => {
