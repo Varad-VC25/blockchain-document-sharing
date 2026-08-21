@@ -1,5 +1,5 @@
-import { FiFileText, FiShare2, FiCloud, FiActivity, FiUsers, FiDownload } from "react-icons/fi";
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { FiFileText, FiShare2, FiCloud, FiActivity, FiUsers } from "react-icons/fi";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { useAuth } from "@context/AuthContext";
 import StatCard from "@components/dashboard/StatCard";
 import ActivityFeed from "@components/dashboard/ActivityFeed";
@@ -28,6 +28,7 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* Welcome Banner */}
       <div className="p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-primary-500 via-purple-600 to-pink-500 text-white shadow-xl relative overflow-hidden">
         <div className="absolute inset-0 bg-grid-pattern opacity-10"></div>
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
@@ -40,13 +41,11 @@ const Dashboard = () => {
               <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
               All systems operational
             </div>
-            <div className="px-3 py-1.5 rounded-full bg-white/10 backdrop-blur text-sm">
-              Sepolia Testnet
-            </div>
           </div>
         </div>
       </div>
 
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         <StatCard icon={FiFileText} label="Total Documents" value="0" trend="up" trendValue="0%" color="primary" subtext="Module 11" />
         <StatCard icon={FiShare2} label="Documents Shared" value="0" color="purple" subtext="Module 17" />
@@ -54,6 +53,7 @@ const Dashboard = () => {
         <StatCard icon={FiActivity} label="Blockchain TX" value="0" color="orange" subtext="Module 16" />
       </div>
 
+      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 p-6 rounded-2xl bg-white dark:bg-dark-900 border border-dark-200 dark:border-dark-800">
           <div className="flex items-center justify-between mb-6">
@@ -109,11 +109,13 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* Activity Feed + Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2"><ActivityFeed /></div>
         <QuickActions />
       </div>
 
+      {/* Status Widget + Coming Next */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <StatusWidget />
         <div className="p-6 rounded-2xl bg-gradient-to-br from-orange-500 to-pink-500 text-white shadow-xl">
@@ -123,15 +125,15 @@ const Dashboard = () => {
             </div>
             <div>
               <h3 className="text-xl font-bold">Coming Up Next</h3>
-              <p className="text-white/80 text-sm">Module 8 & 9</p>
+              <p className="text-white/80 text-sm">Module 10 & Beyond</p>
             </div>
           </div>
-          <p className="text-white/90 mb-4 text-sm">Beautiful drag-drop upload UI and complete My Documents page with grid/list view, filters, and search.</p>
+          <p className="text-white/90 mb-4 text-sm">AES-256 encryption, IPFS integration, wallet authentication, smart contracts, and full document management.</p>
           <div className="flex flex-wrap gap-2">
-            <span className="px-3 py-1 rounded-full bg-white/20 text-xs font-medium">Drag & Drop</span>
-            <span className="px-3 py-1 rounded-full bg-white/20 text-xs font-medium">Grid View</span>
-            <span className="px-3 py-1 rounded-full bg-white/20 text-xs font-medium">Filters</span>
-            <span className="px-3 py-1 rounded-full bg-white/20 text-xs font-medium">Search</span>
+            <span className="px-3 py-1 rounded-full bg-white/20 text-xs font-medium">Encryption</span>
+            <span className="px-3 py-1 rounded-full bg-white/20 text-xs font-medium">IPFS</span>
+            <span className="px-3 py-1 rounded-full bg-white/20 text-xs font-medium">Blockchain</span>
+            <span className="px-3 py-1 rounded-full bg-white/20 text-xs font-medium">Sharing</span>
           </div>
         </div>
       </div>

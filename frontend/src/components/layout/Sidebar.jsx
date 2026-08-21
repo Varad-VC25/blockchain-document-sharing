@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, Link } from "react-router-dom";
 import { FiHome, FiFileText, FiUpload, FiShare2, FiCloud, FiActivity, FiCheckCircle, FiUser, FiLock, FiX, FiChevronLeft } from "react-icons/fi";
 
 const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
@@ -19,17 +19,27 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
         <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={onClose} />
       )}
       <aside className={"fixed lg:sticky top-0 left-0 h-screen bg-white dark:bg-dark-900 border-r border-dark-200 dark:border-dark-800 z-50 transition-all duration-300 flex flex-col " + (isCollapsed ? "w-20" : "w-64") + " " + (isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0")}>
+
+        {/* Logo Section - Links to landing page */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-dark-200 dark:border-dark-800">
-          <NavLink to="/dashboard" className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-purple-600 flex items-center justify-center shadow-lg flex-shrink-0">
+          <Link
+            to="/"
+            className="flex items-center gap-2 group hover:opacity-80 transition-opacity"
+            title="Go to Home"
+          >
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-purple-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform flex-shrink-0">
               <FiLock className="text-white text-xl" />
             </div>
-            {!isCollapsed && <span className="text-xl font-bold gradient-text">BlockDocs</span>}
-          </NavLink>
+            {!isCollapsed && (
+              <span className="text-xl font-bold gradient-text">BlockDocs</span>
+            )}
+          </Link>
           <button onClick={onClose} className="lg:hidden p-1.5 rounded-lg hover:bg-dark-100 dark:hover:bg-dark-800">
             <FiX className="text-xl" />
           </button>
         </div>
+
+        {/* Navigation Menu */}
         <nav className="flex-1 px-3 py-4 overflow-y-auto">
           <ul className="space-y-1">
             {menuItems.map((item) => (
@@ -53,6 +63,8 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
             ))}
           </ul>
         </nav>
+
+        {/* Collapse Button */}
         <div className="p-3 border-t border-dark-200 dark:border-dark-800">
           <button
             onClick={onToggleCollapse}
