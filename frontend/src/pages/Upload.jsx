@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { FiUpload, FiTag, FiFileText, FiInfo, FiArrowLeft, FiX, FiPlus, FiCheckCircle } from "react-icons/fi";
+import {
+  FiUpload, FiTag, FiFileText, FiInfo, FiArrowLeft, FiX, FiPlus, FiCheckCircle
+} from "react-icons/fi";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 
@@ -8,6 +10,7 @@ import DropZone from "@components/upload/DropZone";
 import FilePreview from "@components/upload/FilePreview";
 import UploadProgress from "@components/upload/UploadProgress";
 import UploadWorkflow from "@components/upload/UploadWorkflow";
+import documentService from "@services/documentService";
 
 const Upload = () => {
   const navigate = useNavigate();
@@ -23,12 +26,18 @@ const Upload = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState(0);
   const [uploadComplete, setUploadComplete] = useState(false);
+  const [resultDoc, setResultDoc] = useState(null);
 
   const handleFileSelect = (file) => {
     setSelectedFile(file);
+    setUploadComplete(false);
+    setResultDoc(null);
+    setCurrentStep(0);
+    setUploadProgress(0);
+
     if (!metadata.title) {
       const nameWithoutExt = file.name.split(".").slice(0, -1).join(".") || file.name;
-      setMetadata({ ...metadata, title: nameWithoutExt });
+      setMetadata((prev) => ({ ...prev, title: nameWithoutExt }));
     }
     toast.success("File selected: " + file.name);
   };
@@ -37,6 +46,7 @@ const Upload = () => {
     setSelectedFile(null);
     setMetadata({ title: "", description: "", category: "document", tags: [] });
     setUploadComplete(false);
+    setResultDoc(null);
     setCurrentStep(0);
     setUploadProgress(0);
   };
@@ -71,40 +81,58 @@ const Upload = () => {
     }
 
     setIsUploading(true);
-    setUploadProgress(0);
-    setCurrentStep(0);
+    setUploadProgress(5);
+    setCurrentStep(1);
 
-    // SIMULATED workflow - actual encryption/IPFS/blockchain in modules 10-14
     try {
-      const steps = 5;
-      for (let i = 1; i <= steps; i++) {
-        setCurrentStep(i);
-        await new Promise((resolve) => setTimeout(resolve, 800));
-        setUploadProgress((i / steps) * 100);
-      }
+      // Visual workflow progress while request runs
+      setTimeout(() => { setCurrentStep(2); setUploadProgress(25); }, 400);
+      setTimeout(() => { setCurrentStep(3); setUploadProgress(55); }, 900);
 
+      const response = await documentService.uploadDocument(
+        selectedFile,
+        {
+          title: metadata.title.trim(),
+          description: metadata.description.trim(),
+          category: metadata.category,
+          tags: metadata.tags,
+        },
+        (progressEvent) => {
+          if (!progressEvent.total) return;
+          const pct = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          // Keep room for server-side encrypt/ipfs phase
+          setUploadProgress(Math.min(90, Math.max(10, pct)));
+        }
+      );
+
+      setCurrentStep(4);
+      setUploadProgress(95);
+      await new Promise((r) => setTimeout(r, 300));
+      setCurrentStep(5);
+      setUploadProgress(100);
+
+      setResultDoc(response?.data?.document || null);
       setUploadComplete(true);
-      toast.success("Upload UI test complete! Real upload activates in Module 11.");
+      toast.success("Encrypted and uploaded to IPFS successfully!");
     } catch (error) {
-      toast.error("Upload failed: " + error.message);
-      setIsUploading(false);
+      const message =
+        error.response?.data?.message ||
+        error.message ||
+        "Upload failed";
+      toast.error(message);
       setCurrentStep(0);
       setUploadProgress(0);
+    } finally {
+      setIsUploading(false);
     }
   };
 
   const handleNewUpload = () => {
-    setSelectedFile(null);
-    setMetadata({ title: "", description: "", category: "document", tags: [] });
-    setIsUploading(false);
-    setUploadProgress(0);
-    setCurrentStep(0);
-    setUploadComplete(false);
+    handleRemoveFile();
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <button onClick={() => navigate("/dashboard")} className="flex items-center gap-2 text-sm text-dark-500 hover:text-primary-600 mb-2">
@@ -112,49 +140,52 @@ const Upload = () => {
             Back to Dashboard
           </button>
           <h1 className="text-3xl font-bold text-dark-900 dark:text-white">Upload Document</h1>
-          <p className="text-dark-500 mt-1">Encrypt and store your document securely</p>
+          <p className="text-dark-500 mt-1">Encrypt with AES-256 and store on IPFS</p>
         </div>
         {selectedFile && !uploadComplete && (
-          <button onClick={handleRemoveFile} className="btn-secondary text-sm flex items-center gap-2">
+          <button onClick={handleRemoveFile} className="btn-secondary text-sm flex items-center gap-2" disabled={isUploading}>
             <FiX />
             Cancel
           </button>
         )}
       </div>
 
-      {/* Module Info Banner */}
       <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
         <div className="flex items-start gap-3">
           <FiInfo className="text-blue-600 dark:text-blue-400 text-xl flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-blue-900 dark:text-blue-300">Module 8 - Upload UI Preview</p>
+            <p className="text-sm font-semibold text-blue-900 dark:text-blue-300">Module 11 � Real IPFS Upload</p>
             <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
-              This is the beautiful upload interface. Real AES-256 encryption (Module 10), IPFS upload (Module 11), Cloudinary backup (Module 12), and blockchain registration (Module 14) will be added in upcoming modules.
+              Files are encrypted first, then only the encrypted version is pinned to IPFS via Pinata. Original files are never uploaded.
             </p>
           </div>
         </div>
       </div>
 
-      {/* Success Screen */}
       <AnimatePresence>
         {uploadComplete && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="p-12 rounded-3xl bg-gradient-to-br from-green-500 to-emerald-600 text-white text-center shadow-2xl"
+            className="p-10 rounded-3xl bg-gradient-to-br from-green-500 to-emerald-600 text-white text-center shadow-2xl"
           >
-            <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
-              <FiCheckCircle className="text-6xl" />
+            <div className="w-20 h-20 mx-auto mb-5 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
+              <FiCheckCircle className="text-5xl" />
             </div>
-            <h2 className="text-3xl font-bold mb-3">Upload Complete!</h2>
-            <p className="text-white/90 mb-8 max-w-md mx-auto">
-              Your file "{selectedFile?.name}" has been processed through the upload workflow. Real integration activates in Module 11.
+            <h2 className="text-3xl font-bold mb-2">Upload Complete</h2>
+            <p className="text-white/90 mb-4">
+              {resultDoc?.title || selectedFile?.name} encrypted and stored on IPFS.
             </p>
+            {resultDoc?.ipfsCid && (
+              <p className="text-xs font-mono bg-white/10 rounded-lg px-3 py-2 mb-6 break-all">
+                CID: {resultDoc.ipfsCid}
+              </p>
+            )}
             <div className="flex flex-wrap items-center justify-center gap-3">
-              <button onClick={handleNewUpload} className="px-6 py-3 rounded-lg bg-white text-green-600 font-bold hover:bg-green-50 transition-colors">
+              <button onClick={handleNewUpload} className="px-6 py-3 rounded-lg bg-white text-green-700 font-bold hover:bg-green-50 transition-colors">
                 Upload Another
               </button>
-              <button onClick={() => navigate("/documents")} className="px-6 py-3 rounded-lg bg-white/20 backdrop-blur text-white font-bold hover:bg-white/30 transition-colors border border-white/30">
+              <button onClick={() => navigate("/documents")} className="px-6 py-3 rounded-lg bg-white/20 border border-white/30 text-white font-bold hover:bg-white/30 transition-colors">
                 View Documents
               </button>
             </div>
@@ -162,12 +193,9 @@ const Upload = () => {
         )}
       </AnimatePresence>
 
-      {/* Main Upload Area */}
       {!uploadComplete && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-
-            {/* DropZone or FilePreview */}
             <AnimatePresence mode="wait">
               {!selectedFile ? (
                 <DropZone key="dropzone" onFileSelect={handleFileSelect} disabled={isUploading} />
@@ -176,7 +204,6 @@ const Upload = () => {
               )}
             </AnimatePresence>
 
-            {/* Metadata Form */}
             {selectedFile && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -195,8 +222,8 @@ const Upload = () => {
                     value={metadata.title}
                     onChange={(e) => setMetadata({ ...metadata, title: e.target.value })}
                     disabled={isUploading}
-                    placeholder="Enter document title"
                     className="input-field"
+                    placeholder="Enter document title"
                   />
                 </div>
 
@@ -206,9 +233,9 @@ const Upload = () => {
                     value={metadata.description}
                     onChange={(e) => setMetadata({ ...metadata, description: e.target.value })}
                     disabled={isUploading}
-                    placeholder="Optional description..."
                     rows={3}
                     className="input-field resize-none"
+                    placeholder="Optional description"
                   />
                 </div>
 
@@ -229,7 +256,9 @@ const Upload = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-dark-700 dark:text-dark-300 mb-2">Tags ({metadata.tags.length}/10)</label>
+                  <label className="block text-sm font-medium text-dark-700 dark:text-dark-300 mb-2">
+                    Tags ({metadata.tags.length}/10)
+                  </label>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
                       <FiTag className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400" />
@@ -239,16 +268,11 @@ const Upload = () => {
                         onChange={(e) => setTagInput(e.target.value)}
                         onKeyDown={handleTagKeyDown}
                         disabled={isUploading || metadata.tags.length >= 10}
-                        placeholder="Add tag and press Enter"
                         className="input-field pl-10"
+                        placeholder="Add tag and press Enter"
                       />
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleAddTag}
-                      disabled={isUploading || !tagInput.trim() || metadata.tags.length >= 10}
-                      className="btn-primary px-4 flex items-center gap-2"
-                    >
+                    <button type="button" onClick={handleAddTag} disabled={isUploading} className="btn-primary px-4">
                       <FiPlus />
                     </button>
                   </div>
@@ -257,7 +281,7 @@ const Upload = () => {
                       {metadata.tags.map((tag) => (
                         <span key={tag} className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-sm">
                           #{tag}
-                          <button onClick={() => handleRemoveTag(tag)} disabled={isUploading} className="hover:text-red-500">
+                          <button onClick={() => handleRemoveTag(tag)} disabled={isUploading}>
                             <FiX />
                           </button>
                         </span>
@@ -266,10 +290,13 @@ const Upload = () => {
                   )}
                 </div>
 
-                {/* Upload Progress */}
-                {isUploading && <UploadProgress progress={uploadProgress} status={uploadProgress >= 100 ? "complete" : "uploading"} />}
+                {isUploading && (
+                  <UploadProgress
+                    progress={uploadProgress}
+                    status={uploadProgress >= 100 ? "complete" : "uploading"}
+                  />
+                )}
 
-                {/* Submit Button */}
                 <button
                   onClick={handleUpload}
                   disabled={isUploading || !selectedFile || !metadata.title.trim()}
@@ -278,12 +305,12 @@ const Upload = () => {
                   {isUploading ? (
                     <>
                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Processing...
+                      Encrypting & Uploading to IPFS...
                     </>
                   ) : (
                     <>
                       <FiUpload />
-                      Encrypt and Upload
+                      Encrypt & Upload to IPFS
                     </>
                   )}
                 </button>
@@ -291,24 +318,17 @@ const Upload = () => {
             )}
           </div>
 
-          {/* Right Sidebar */}
           <div className="space-y-6">
             <UploadWorkflow currentStep={currentStep} />
-
-            {/* Security Info */}
             <div className="p-6 rounded-2xl bg-gradient-to-br from-primary-500 to-purple-600 text-white shadow-xl">
-              <h3 className="text-lg font-bold mb-3">Zero Knowledge</h3>
-              <p className="text-white/90 text-sm mb-4">
-                Your files are encrypted before leaving your device. Not even we can access them.
-              </p>
-              <div className="space-y-2 text-sm">
-                {["Client-side AES-256", "SHA-256 verification", "Wallet-controlled access", "Blockchain immutability"].map((item) => (
-                  <div key={item} className="flex items-center gap-2">
-                    <FiCheckCircle className="flex-shrink-0" />
-                    {item}
-                  </div>
-                ))}
-              </div>
+              <h3 className="text-lg font-bold mb-3">Storage Guarantee</h3>
+              <ul className="space-y-2 text-sm text-white/90">
+                <li>1. File validated</li>
+                <li>2. AES-256 encrypted</li>
+                <li>3. SHA-256 hashed</li>
+                <li>4. Encrypted file pinned on IPFS</li>
+                <li>5. Metadata saved in MongoDB</li>
+              </ul>
             </div>
           </div>
         </div>

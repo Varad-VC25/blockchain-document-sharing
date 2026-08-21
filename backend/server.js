@@ -3,7 +3,6 @@ const express = require("express");
 const helmet = require("helmet");
 const cors = require("cors");
 const compression = require("compression");
-const mongoSanitize = require("express-mongo-sanitize");
 const hpp = require("hpp");
 const path = require("path");
 const mongoose = require("mongoose");
@@ -17,6 +16,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 
+// -- Security & Middleware -----------------------------------------
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 
 const corsOptions = {
@@ -41,17 +41,20 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 app.use("/api", generalLimiter);
+
+// -- Parsers -------------------------------------------------------
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-app.use(mongoSanitize());
 app.use(hpp());
 app.use(compression());
 app.use(morganMiddleware);
 
+// -- Static Files (development) -----------------------------------
 if (NODE_ENV === "development") {
   app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 }
 
+// -- Root & Health Check -------------------------------------------
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
@@ -74,18 +77,15 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// -- API Routes ----------------------------------------------------
+// -- API Routes (REGISTERED HERE BEFORE ERROR HANDLERS) ------------
 app.use("/api/auth", require("./routes/authRoutes"));
+app.use("/api/documents", require("./routes/documentRoutes"));
 
-// Future modules
-// app.use("/api/documents", require("./routes/documentRoutes"));
-// app.use("/api/share", require("./routes/shareRoutes"));
-// app.use("/api/audit", require("./routes/auditRoutes"));
-// app.use("/api/user", require("./routes/userRoutes"));
-
+// -- Error Handling (MUST BE AFTER ROUTES) -------------------------
 app.use(notFoundHandler);
 app.use(errorHandler);
 
+// -- Start Server --------------------------------------------------
 const startServer = async () => {
   try {
     await connectDB();
@@ -93,10 +93,11 @@ const startServer = async () => {
       logger.info("================================================");
       logger.info(" Blockchain Document Sharing API");
       logger.info("================================================");
-      logger.info("Environment : " + NODE_ENV);
-      logger.info("Server URL  : http://localhost:" + PORT);
-      logger.info("Health Check: http://localhost:" + PORT + "/api/health");
-      logger.info("Auth API    : http://localhost:" + PORT + "/api/auth");
+      logger.info("Environment  : " + NODE_ENV);
+      logger.info("Server URL   : http://localhost:" + PORT);
+      logger.info("Health Check : http://localhost:" + PORT + "/api/health");
+      logger.info("Auth API     : http://localhost:" + PORT + "/api/auth");
+      logger.info("Documents API: http://localhost:" + PORT + "/api/documents");
       logger.info("================================================");
     });
 

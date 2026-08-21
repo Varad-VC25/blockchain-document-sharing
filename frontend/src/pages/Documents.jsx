@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { FiPlus, FiFileText, FiInfo } from "react-icons/fi";
+import { useEffect, useMemo, useState } from "react";
+import { FiPlus, FiInfo, FiRefreshCw } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
 
@@ -8,46 +8,51 @@ import DocumentListItem from "@components/documents/DocumentListItem";
 import DocumentFilters from "@components/documents/DocumentFilters";
 import DocumentDetailsModal from "@components/documents/DocumentDetailsModal";
 import EmptyState from "@components/documents/EmptyState";
-import { mockDocuments } from "@utils/mockData";
+import Loader from "@components/common/Loader";
+import documentService from "@services/documentService";
 
 const Documents = () => {
-  const [documents] = useState(mockDocuments);
+  const [documents, setDocuments] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [category, setCategory] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [viewMode, setViewMode] = useState("grid");
   const [selectedDoc, setSelectedDoc] = useState(null);
 
-  const filteredDocs = useMemo(() => {
-    let result = [...documents];
-
-    // Search
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter((doc) =>
-        doc.title.toLowerCase().includes(q) ||
-        doc.originalFileName.toLowerCase().includes(q) ||
-        (doc.tags || []).some((t) => t.toLowerCase().includes(q))
-      );
+  const fetchDocuments = async () => {
+    setLoading(true);
+    try {
+      const response = await documentService.getMyDocuments({
+        search: searchQuery,
+        category,
+        sort: sortBy,
+      });
+      setDocuments(response?.data?.documents || []);
+    } catch (error) {
+      const message = error.response?.data?.message || "Failed to load documents";
+      toast.error(message);
+      setDocuments([]);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    // Category
-    if (category !== "all") {
-      result = result.filter((doc) => doc.category === category);
-    }
+  useEffect(() => {
+    fetchDocuments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category, sortBy]);
 
-    // Sort
-    const sorters = {
-      newest: (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
-      oldest: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
-      name: (a, b) => a.title.localeCompare(b.title),
-      "name-desc": (a, b) => b.title.localeCompare(a.title),
-      size: (a, b) => b.fileSize - a.fileSize,
-      "size-asc": (a, b) => a.fileSize - b.fileSize,
-    };
-    result.sort(sorters[sortBy] || sorters.newest);
-    return result;
-  }, [documents, searchQuery, category, sortBy]);
+  // Debounced search
+  useEffect(() => {
+    const t = setTimeout(() => {
+      fetchDocuments();
+    }, 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery]);
+
+  const filteredDocs = useMemo(() => documents, [documents]);
 
   const handleClearFilters = () => {
     setSearchQuery("");
@@ -55,41 +60,72 @@ const Documents = () => {
     setSortBy("newest");
   };
 
-  const handleView = (doc) => setSelectedDoc(doc);
-  const handleDownload = (doc) => toast.info("Download will be available in Module 19");
-  const handleShare = (doc) => toast.info("Share feature will be available in Module 17");
-  const handleDelete = (doc) => toast.info("Delete will be available in Module 11");
+  const handleView = async (doc) => {
+    try {
+      const response = await documentService.getDocumentById(doc._id);
+      setSelectedDoc(response?.data?.document || doc);
+    } catch (error) {
+      setSelectedDoc(doc);
+    }
+  };
+
+  const handleDownload = () => {
+    toast.info("Secure download comes in Module 19");
+  };
+
+  const handleShare = () => {
+    toast.info("Sharing comes in Module 17");
+  };
+
+  const handleDelete = async (doc) => {
+    const ok = window.confirm("Delete this document?");
+    if (!ok) return;
+
+    try {
+      await documentService.deleteDocument(doc._id);
+      toast.success("Document deleted");
+      setDocuments((prev) => prev.filter((d) => d._id !== doc._id));
+      if (selectedDoc?._id === doc._id) setSelectedDoc(null);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Delete failed");
+    }
+  };
 
   const hasFilters = searchQuery || category !== "all" || sortBy !== "newest";
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-dark-900 dark:text-white">My Documents</h1>
-          <p className="text-dark-500 mt-1">{filteredDocs.length} document{filteredDocs.length !== 1 ? "s" : ""}</p>
+          <p className="text-dark-500 mt-1">
+            {loading ? "Loading..." : filteredDocs.length + " document" + (filteredDocs.length !== 1 ? "s" : "")}
+          </p>
         </div>
-        <Link to="/upload" className="btn-primary flex items-center gap-2">
-          <FiPlus />
-          Upload Document
-        </Link>
+        <div className="flex items-center gap-2">
+          <button onClick={fetchDocuments} className="btn-secondary flex items-center gap-2">
+            <FiRefreshCw />
+            Refresh
+          </button>
+          <Link to="/upload" className="btn-primary flex items-center gap-2">
+            <FiPlus />
+            Upload Document
+          </Link>
+        </div>
       </div>
 
-      {/* Module Info */}
       <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
         <div className="flex items-start gap-3">
           <FiInfo className="text-blue-600 dark:text-blue-400 text-xl flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-blue-900 dark:text-blue-300">Module 9 - My Documents UI</p>
+            <p className="text-sm font-semibold text-blue-900 dark:text-blue-300">Module 11 � Live IPFS Documents</p>
             <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
-              This page uses sample data for UI demonstration. Real documents will appear from Module 11 (Document APIs) onwards.
+              Showing real encrypted uploads from MongoDB + IPFS. Cloud backup and blockchain registration come next.
             </p>
           </div>
         </div>
       </div>
 
-      {/* Filters */}
       <DocumentFilters
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -102,8 +138,9 @@ const Documents = () => {
         onClearFilters={handleClearFilters}
       />
 
-      {/* Documents */}
-      {filteredDocs.length === 0 ? (
+      {loading ? (
+        <Loader text="Loading documents..." />
+      ) : filteredDocs.length === 0 ? (
         <EmptyState hasFilters={hasFilters} onClearFilters={handleClearFilters} />
       ) : viewMode === "grid" ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
@@ -133,7 +170,6 @@ const Documents = () => {
         </div>
       )}
 
-      {/* Details Modal */}
       {selectedDoc && (
         <DocumentDetailsModal
           document={selectedDoc}

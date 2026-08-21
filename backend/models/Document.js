@@ -102,12 +102,6 @@ const documentSchema = new mongoose.Schema(
     tags: {
       type: [String],
       default: [],
-      validate: {
-        validator: function (tags) {
-          return tags.length <= 10;
-        },
-        message: "Cannot have more than 10 tags",
-      },
     },
     category: {
       type: String,
@@ -170,13 +164,10 @@ const documentSchema = new mongoose.Schema(
 );
 
 documentSchema.index({ owner: 1 });
-documentSchema.index({ ipfsCid: 1 });
 documentSchema.index({ fileHash: 1 });
 documentSchema.index({ ownerWalletAddress: 1 });
-documentSchema.index({ tags: 1 });
 documentSchema.index({ createdAt: -1 });
 documentSchema.index({ isDeleted: 1 });
-documentSchema.index({ title: "text", description: "text", tags: "text" });
 
 documentSchema.virtual("fileSizeFormatted").get(function () {
   const bytes = this.fileSize;
@@ -190,11 +181,10 @@ documentSchema.virtual("isShared").get(function () {
   return this.sharedWith && this.sharedWith.length > 0;
 });
 
-documentSchema.pre(/^find/, function (next) {
+documentSchema.pre(/^find/, function () {
   if (!this.getQuery().isDeleted) {
     this.where({ isDeleted: false });
   }
-  next();
 });
 
 const Document = mongoose.model("Document", documentSchema);
