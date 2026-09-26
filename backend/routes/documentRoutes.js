@@ -1,7 +1,3 @@
-// ================================================================
-// DOCUMENT ROUTES
-// ================================================================
-
 const express = require("express");
 const router = express.Router();
 
@@ -11,28 +7,22 @@ const {
   getDocumentById,
   deleteDocument,
   getIpfsStatus,
+  getCloudStorageAnalytics,
 } = require("../controllers/documentController");
 
 const { protect } = require("../middleware/authMiddleware");
 const { handleUpload } = require("../middleware/uploadMiddleware");
 const { uploadLimiter } = require("../middleware/rateLimiter");
 
-// All document routes require login
 router.use(protect);
 
-// IPFS status
+// status routes first (before :id)
 router.get("/ipfs/status", getIpfsStatus);
+router.get("/cloud/status", getCloudStorageAnalytics);
 
-// List my documents
 router.get("/", getMyDocuments);
-
-// Upload encrypted document to IPFS
 router.post("/upload", uploadLimiter, handleUpload, uploadDocument);
-
-// Get one document
 router.get("/:id", getDocumentById);
-
-// Soft delete
 router.delete("/:id", deleteDocument);
 
 module.exports = router;
