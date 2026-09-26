@@ -5,6 +5,7 @@ import "react-toastify/dist/ReactToastify.css";
 
 import { ThemeProvider } from "@context/ThemeContext";
 import { AuthProvider } from "@context/AuthContext";
+import { WalletProvider } from "@context/WalletContext";
 import { TOAST_CONFIG } from "@config/constants";
 
 import ProtectedRoute from "@components/common/ProtectedRoute";
@@ -27,6 +28,7 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
+        <WalletProvider>
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Home />} />
@@ -58,6 +60,7 @@ function App() {
           <ToastContainer {...TOAST_CONFIG} />
           <Toaster position="top-right" reverseOrder={false} />
         </BrowserRouter>
+      </WalletProvider>
       </AuthProvider>
     </ThemeProvider>
   );
