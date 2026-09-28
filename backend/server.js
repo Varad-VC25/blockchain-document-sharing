@@ -80,6 +80,7 @@ app.get("/api/health", (req, res) => {
 // -- API Routes (REGISTERED HERE BEFORE ERROR HANDLERS) ------------
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/documents", require("./routes/documentRoutes"));
+app.use("/api/share", require("./routes/shareRoutes"));
 app.use("/api/user", require("./routes/userRoutes"));
 
 // -- Error Handling (MUST BE AFTER ROUTES) -------------------------

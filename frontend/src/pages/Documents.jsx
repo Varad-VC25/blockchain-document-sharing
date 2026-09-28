@@ -7,6 +7,7 @@ import DocumentCard from "@components/documents/DocumentCard";
 import DocumentListItem from "@components/documents/DocumentListItem";
 import DocumentFilters from "@components/documents/DocumentFilters";
 import DocumentDetailsModal from "@components/documents/DocumentDetailsModal";
+import ShareModal from "@components/documents/ShareModal";
 import EmptyState from "@components/documents/EmptyState";
 import Loader from "@components/common/Loader";
 import documentService from "@services/documentService";
@@ -19,6 +20,7 @@ const Documents = () => {
   const [sortBy, setSortBy] = useState("newest");
   const [viewMode, setViewMode] = useState("grid");
   const [selectedDoc, setSelectedDoc] = useState(null);
+  const [shareDoc, setShareDoc] = useState(null);
 
   const fetchDocuments = async () => {
     setLoading(true);
@@ -73,8 +75,8 @@ const Documents = () => {
     toast.info("Secure download comes in Module 19");
   };
 
-  const handleShare = () => {
-    toast.info("Sharing comes in Module 17");
+  const handleShare = (doc) => {
+    setShareDoc(doc);
   };
 
   const handleDelete = async (doc) => {
@@ -118,9 +120,9 @@ const Documents = () => {
         <div className="flex items-start gap-3">
           <FiInfo className="text-blue-600 dark:text-blue-400 text-xl flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-blue-900 dark:text-blue-300">Module 11 � Live IPFS Documents</p>
+            <p className="text-sm font-semibold text-blue-900 dark:text-blue-300">Your Encrypted Documents</p>
             <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
-              Showing real encrypted uploads from MongoDB + IPFS. Cloud backup and blockchain registration come next.
+              Showing your encrypted documents stored on IPFS with optional cloud backup and blockchain verification.
             </p>
           </div>
         </div>
@@ -168,6 +170,14 @@ const Documents = () => {
             />
           ))}
         </div>
+      )}
+
+      {shareDoc && (
+        <ShareModal
+          document={shareDoc}
+          onClose={() => setShareDoc(null)}
+          onSuccess={fetchDocuments}
+        />
       )}
 
       {selectedDoc && (

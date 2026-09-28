@@ -118,3 +118,31 @@ export default {
   verifyOnChainIntegrity,
   getOnChainMetadata,
 };
+
+
+// -- Grant Access On-Chain -----------------------------------------
+export const grantAccessOnChain = async (ipfsCid, recipientAddress) => {
+  try {
+    const contract = await getSignerContract();
+    console.log("Granting access on-chain for CID:", ipfsCid, "to:", recipientAddress);
+
+    const tx = await contract.grantAccess(ipfsCid, recipientAddress);
+    console.log("Grant access transaction submitted:", tx.hash);
+
+    const receipt = await tx.wait(1);
+    console.log("Grant access confirmed in block:", receipt.blockNumber);
+
+    return {
+      success: true,
+      txHash: tx.hash,
+      blockNumber: receipt.blockNumber,
+    };
+  } catch (error) {
+    console.error("Grant access on-chain error:", error);
+    let msg = error.reason || error.message || "Grant access transaction failed";
+    if (String(msg).includes("user rejected")) {
+      msg = "Transaction rejected in MetaMask";
+    }
+    throw new Error(msg);
+  }
+};

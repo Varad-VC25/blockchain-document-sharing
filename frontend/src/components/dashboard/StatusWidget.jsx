@@ -2,10 +2,10 @@ import { FiDatabase, FiCloud, FiLink } from "react-icons/fi";
 
 const StatusWidget = () => {
   const services = [
-    { name: "MongoDB Atlas", status: "operational", desc: "Database", icon: FiDatabase, color: "green" },
-    { name: "IPFS Network", status: "pending", desc: "Storage - Module 11", icon: FiCloud, color: "yellow" },
-    { name: "Cloudinary", status: "pending", desc: "Backup - Module 12", icon: FiCloud, color: "yellow" },
-    { name: "Ethereum Sepolia", status: "pending", desc: "Blockchain - Module 14", icon: FiLink, color: "yellow" },
+    { name: "MongoDB Atlas", status: "operational", desc: "Database connected", icon: FiDatabase },
+    { name: "IPFS Network", status: "operational", desc: "Decentralized storage", icon: FiCloud },
+    { name: "Cloudinary", status: "operational", desc: "Encrypted cloud backup", icon: FiCloud },
+    { name: "Ethereum Network", status: "operational", desc: "Smart contract ready", icon: FiLink },
   ];
 
   const statusConfig = {

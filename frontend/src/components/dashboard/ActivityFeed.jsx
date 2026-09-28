@@ -4,9 +4,9 @@ const ActivityFeed = () => {
   const activities = [
     { type: "REGISTER", icon: FiUserPlus, color: "green", title: "Account Created", desc: "Welcome to BlockDocs!", time: "Just now" },
     { type: "LOGIN", icon: FiCheckCircle, color: "blue", title: "Login Successful", desc: "You logged in successfully", time: "1 min ago" },
-    { type: "PENDING", icon: FiUpload, color: "gray", title: "Upload Documents", desc: "Available in Module 11", time: "Coming soon" },
-    { type: "PENDING", icon: FiShare2, color: "gray", title: "Share Documents", desc: "Available in Module 17", time: "Coming soon" },
-    { type: "PENDING", icon: FiDownload, color: "gray", title: "Download Verified", desc: "Available in Module 19", time: "Coming soon" },
+    { type: "PENDING", icon: FiUpload, color: "gray", title: "Upload Documents", desc: "Ready for upload", time: "Coming soon" },
+    { type: "PENDING", icon: FiShare2, color: "gray", title: "Share Documents", desc: "Ready to share", time: "Coming soon" },
+    { type: "PENDING", icon: FiDownload, color: "gray", title: "Download Verified", desc: "Coming soon", time: "Coming soon" },
   ];
 
   const colorClasses = {

@@ -17,6 +17,7 @@ const Dashboard = () => {
     totalDocs: 0,
     totalBytes: 0,
     sharedCount: 0,
+    blockchainCount: 0,
   });
 
   useEffect(() => {
@@ -26,18 +27,20 @@ const Dashboard = () => {
         const docs = response?.data?.documents || [];
         const totalBytes = docs.reduce((sum, d) => sum + (d.fileSize || 0), 0);
         const sharedCount = docs.filter((d) => d.sharedWith && d.sharedWith.length > 0).length;
+        const blockchainCount = docs.filter((d) => d.isOnBlockchain === true || !!d.txHash).length;
 
         setDocStats({
           totalDocs: docs.length,
           totalBytes,
           sharedCount,
+          blockchainCount,
         });
       } catch (err) {
-        // Fallback to user stats if API call fails
         setDocStats({
           totalDocs: user?.stats?.totalUploads || 0,
           totalBytes: user?.stats?.storageUsed || 0,
           sharedCount: user?.stats?.totalShared || 0,
+          blockchainCount: 0,
         });
       }
     };
@@ -45,11 +48,11 @@ const Dashboard = () => {
     fetchStats();
   }, [user]);
 
-  const maxStorageBytes = 50 * 1024 * 1024; // 50 MB Free tier
-  const usedPercent = Math.min(100, Math.round((docStats.totalBytes / maxStorageBytes) * 100));
+  const maxStorageBytes = 50 * 1024 * 1024;
+  const usedPercent = Math.min(100, Math.round((docStats.totalBytes / maxStorageBytes) * 100) || 0);
 
   const storageData = [
-    { name: "Used", value: docStats.totalBytes },
+    { name: "Used", value: Math.max(docStats.totalBytes, 0) },
     { name: "Available", value: Math.max(0, maxStorageBytes - docStats.totalBytes) },
   ];
 
@@ -73,7 +76,7 @@ const Dashboard = () => {
           <p className="text-white/80 text-sm mb-2">Welcome back</p>
           <h1 className="text-3xl lg:text-4xl font-bold mb-3">{user?.fullName}</h1>
           <p className="text-white/90 max-w-2xl">
-            Your secure document dashboard. Track uploads, manage shares, and monitor system activity all in one place.
+            Your secure document dashboard. Track uploads, manage shares, and monitor blockchain activity.
           </p>
           <div className="flex flex-wrap items-center gap-3 mt-6">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur text-sm">
@@ -93,28 +96,28 @@ const Dashboard = () => {
           trend="up"
           trendValue={docStats.totalDocs > 0 ? "Active" : "0"}
           color="primary"
-          subtext={docStats.totalDocs > 0 ? "Live from IPFS & MongoDB" : "No documents yet"}
+          subtext={docStats.totalDocs > 0 ? "Encrypted & stored" : "No documents yet"}
         />
         <StatCard
           icon={FiShare2}
           label="Documents Shared"
           value={String(docStats.sharedCount)}
           color="purple"
-          subtext="Module 17"
+          subtext={docStats.sharedCount > 0 ? "Active shares" : "No shares yet"}
         />
         <StatCard
           icon={FiCloud}
-          label="IPFS Storage Used"
+          label="Storage Used"
           value={formatFileSize(docStats.totalBytes)}
           color="green"
-          subtext="Module 12 Backup Next"
+          subtext="IPFS + Cloud backup"
         />
         <StatCard
           icon={FiActivity}
           label="Blockchain TX"
-          value="0"
+          value={String(docStats.blockchainCount)}
           color="orange"
-          subtext="Module 16"
+          subtext={docStats.blockchainCount > 0 ? "On-chain verified" : "Not registered yet"}
         />
       </div>
 
@@ -124,7 +127,7 @@ const Dashboard = () => {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h3 className="text-lg font-bold text-dark-900 dark:text-white">Activity Overview</h3>
-              <p className="text-sm text-dark-500">Live Weekly Uploads</p>
+              <p className="text-sm text-dark-500">Uploads and shares</p>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-primary-500"></div><span className="text-dark-500">Uploads</span></div>
@@ -146,7 +149,7 @@ const Dashboard = () => {
         <div className="p-6 rounded-2xl bg-white dark:bg-dark-900 border border-dark-200 dark:border-dark-800">
           <div className="mb-6">
             <h3 className="text-lg font-bold text-dark-900 dark:text-white">Storage Usage</h3>
-            <p className="text-sm text-dark-500">IPFS Allocated Space</p>
+            <p className="text-sm text-dark-500">Encrypted storage usage</p>
           </div>
           <div className="relative">
             <ResponsiveContainer width="100%" height={200}>
@@ -180,7 +183,7 @@ const Dashboard = () => {
         <QuickActions />
       </div>
 
-      {/* Status Widget + Next Module */}
+      {/* Status Widget */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <StatusWidget />
         <div className="p-6 rounded-2xl bg-gradient-to-br from-orange-500 to-pink-500 text-white shadow-xl">
@@ -189,15 +192,18 @@ const Dashboard = () => {
               <FiUsers className="text-2xl" />
             </div>
             <div>
-              <h3 className="text-xl font-bold">Coming Up Next</h3>
-              <p className="text-white/80 text-sm">Module 12 & Beyond</p>
+              <h3 className="text-xl font-bold">Security Status</h3>
+              <p className="text-white/80 text-sm">Platform protection overview</p>
             </div>
           </div>
-          <p className="text-white/90 mb-4 text-sm">Cloudinary encrypted cloud backup, MetaMask wallet connection, Solidity smart contracts, and permissioned sharing.</p>
+          <p className="text-white/90 mb-4 text-sm">
+            Your documents are protected with AES-256 encryption, IPFS storage, cloud backup, and optional blockchain verification.
+          </p>
           <div className="flex flex-wrap gap-2">
+            <span className="px-3 py-1 rounded-full bg-white/20 text-xs font-medium">AES-256</span>
+            <span className="px-3 py-1 rounded-full bg-white/20 text-xs font-medium">IPFS</span>
             <span className="px-3 py-1 rounded-full bg-white/20 text-xs font-medium">Cloud Backup</span>
-            <span className="px-3 py-1 rounded-full bg-white/20 text-xs font-medium">MetaMask</span>
-            <span className="px-3 py-1 rounded-full bg-white/20 text-xs font-medium">Smart Contracts</span>
+            <span className="px-3 py-1 rounded-full bg-white/20 text-xs font-medium">Blockchain</span>
           </div>
         </div>
       </div>

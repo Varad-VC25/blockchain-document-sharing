@@ -187,7 +187,7 @@ const Upload = () => {
         <div className="flex items-start gap-3">
           <FiInfo className="text-blue-600 dark:text-blue-400 text-xl flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-blue-900 dark:text-blue-300">Module 16 � Blockchain Registration</p>
+            <p className="text-sm font-semibold text-blue-900 dark:text-blue-300">Blockchain Document Registration</p>
             <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
               Documents are encrypted, saved to IPFS + Cloudinary, and verified on Ethereum via Smart Contract.
             </p>
