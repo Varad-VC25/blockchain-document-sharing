@@ -42,6 +42,14 @@ const documentService = {
     return response.data;
   },
 
+  
+  updateBlockchainTx: async (id, txHash, walletAddress) => {
+    const response = await api.patch("/documents/" + id + "/blockchain", {
+      txHash,
+      walletAddress,
+    });
+    return response.data;
+  },
   getCloudStorageAnalytics: async () => {
     const response = await api.get("/documents/cloud/status");
     return response.data;

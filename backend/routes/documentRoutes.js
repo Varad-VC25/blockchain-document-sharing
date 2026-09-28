@@ -8,6 +8,7 @@ const {
   deleteDocument,
   getIpfsStatus,
   getCloudStorageAnalytics,
+  registerOnBlockchain,
 } = require("../controllers/documentController");
 
 const { protect } = require("../middleware/authMiddleware");
@@ -24,5 +25,6 @@ router.get("/", getMyDocuments);
 router.post("/upload", uploadLimiter, handleUpload, uploadDocument);
 router.get("/:id", getDocumentById);
 router.delete("/:id", deleteDocument);
+router.patch("/:id/blockchain", registerOnBlockchain);
 
 module.exports = router;

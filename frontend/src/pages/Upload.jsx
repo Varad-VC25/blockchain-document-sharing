@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  FiUpload, FiTag, FiFileText, FiInfo, FiArrowLeft, FiX, FiPlus, FiCheckCircle
+  FiUpload, FiTag, FiFileText, FiInfo, FiArrowLeft, FiX, FiPlus,
+  FiCheckCircle, FiLink, FiExternalLink, FiShield, FiLock
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
@@ -11,9 +12,13 @@ import FilePreview from "@components/upload/FilePreview";
 import UploadProgress from "@components/upload/UploadProgress";
 import UploadWorkflow from "@components/upload/UploadWorkflow";
 import documentService from "@services/documentService";
+import { registerDocumentOnChain } from "@services/blockchainService";
+import { useWallet } from "@context/WalletContext";
 
 const Upload = () => {
   const navigate = useNavigate();
+  const { account, connectWallet } = useWallet();
+
   const [selectedFile, setSelectedFile] = useState(null);
   const [metadata, setMetadata] = useState({
     title: "",
@@ -28,10 +33,15 @@ const Upload = () => {
   const [uploadComplete, setUploadComplete] = useState(false);
   const [resultDoc, setResultDoc] = useState(null);
 
+  // Blockchain registration state
+  const [isRegisteringBc, setIsRegisteringBc] = useState(false);
+  const [bcTxHash, setBcTxHash] = useState(null);
+
   const handleFileSelect = (file) => {
     setSelectedFile(file);
     setUploadComplete(false);
     setResultDoc(null);
+    setBcTxHash(null);
     setCurrentStep(0);
     setUploadProgress(0);
 
@@ -47,6 +57,7 @@ const Upload = () => {
     setMetadata({ title: "", description: "", category: "document", tags: [] });
     setUploadComplete(false);
     setResultDoc(null);
+    setBcTxHash(null);
     setCurrentStep(0);
     setUploadProgress(0);
   };
@@ -85,7 +96,6 @@ const Upload = () => {
     setCurrentStep(1);
 
     try {
-      // Visual workflow progress while request runs
       setTimeout(() => { setCurrentStep(2); setUploadProgress(25); }, 400);
       setTimeout(() => { setCurrentStep(3); setUploadProgress(55); }, 900);
 
@@ -100,7 +110,6 @@ const Upload = () => {
         (progressEvent) => {
           if (!progressEvent.total) return;
           const pct = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          // Keep room for server-side encrypt/ipfs phase
           setUploadProgress(Math.min(90, Math.max(10, pct)));
         }
       );
@@ -108,17 +117,15 @@ const Upload = () => {
       setCurrentStep(4);
       setUploadProgress(95);
       await new Promise((r) => setTimeout(r, 300));
-      setCurrentStep(5);
+      setCurrentStep(4); // Finished IPFS + Cloud Backup
       setUploadProgress(100);
 
-      setResultDoc(response?.data?.document || null);
+      const createdDoc = response?.data?.document || null;
+      setResultDoc(createdDoc);
       setUploadComplete(true);
-      toast.success("Encrypted and uploaded to IPFS successfully!");
+      toast.success("Encrypted & uploaded to IPFS + Cloudinary!");
     } catch (error) {
-      const message =
-        error.response?.data?.message ||
-        error.message ||
-        "Upload failed";
+      const message = error.response?.data?.message || error.message || "Upload failed";
       toast.error(message);
       setCurrentStep(0);
       setUploadProgress(0);
@@ -127,12 +134,37 @@ const Upload = () => {
     }
   };
 
-  const handleNewUpload = () => {
-    handleRemoveFile();
+  // -- Blockchain Registration Handler -----------------------------------------
+  const handleBlockchainRegister = async () => {
+    if (!resultDoc) return;
+
+    if (!account) {
+      toast.info("Connecting MetaMask wallet...");
+      const connected = await connectWallet();
+      if (!connected) return;
+    }
+
+    setIsRegisteringBc(true);
+    try {
+      toast.info("Please confirm transaction in MetaMask...");
+      const res = await registerDocumentOnChain(resultDoc);
+      setBcTxHash(res.txHash);
+      setCurrentStep(5); // Complete full 5-step workflow
+
+      // Update backend database with txHash
+      await documentService.updateBlockchainTx(resultDoc._id, res.txHash, account);
+
+      toast.success("Document registered on Ethereum Blockchain!");
+    } catch (err) {
+      toast.error(err.message || "Blockchain registration failed");
+    } finally {
+      setIsRegisteringBc(false);
+    }
   };
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <button onClick={() => navigate("/dashboard")} className="flex items-center gap-2 text-sm text-dark-500 hover:text-primary-600 mb-2">
@@ -140,7 +172,7 @@ const Upload = () => {
             Back to Dashboard
           </button>
           <h1 className="text-3xl font-bold text-dark-900 dark:text-white">Upload Document</h1>
-          <p className="text-dark-500 mt-1">Encrypt with AES-256 and store on IPFS</p>
+          <p className="text-dark-500 mt-1">Encrypt (AES-256) ? IPFS + Cloud Backup ? Blockchain Proof</p>
         </div>
         {selectedFile && !uploadComplete && (
           <button onClick={handleRemoveFile} className="btn-secondary text-sm flex items-center gap-2" disabled={isUploading}>
@@ -150,49 +182,111 @@ const Upload = () => {
         )}
       </div>
 
+      {/* Info Banner */}
       <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
         <div className="flex items-start gap-3">
           <FiInfo className="text-blue-600 dark:text-blue-400 text-xl flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-blue-900 dark:text-blue-300">Module 11 � Real IPFS Upload</p>
+            <p className="text-sm font-semibold text-blue-900 dark:text-blue-300">Module 16 � Blockchain Registration</p>
             <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
-              Files are encrypted first, then only the encrypted version is pinned to IPFS via Pinata. Original files are never uploaded.
+              Documents are encrypted, saved to IPFS + Cloudinary, and verified on Ethereum via Smart Contract.
             </p>
           </div>
         </div>
       </div>
 
+      {/* Success Screen */}
       <AnimatePresence>
         {uploadComplete && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="p-10 rounded-3xl bg-gradient-to-br from-green-500 to-emerald-600 text-white text-center shadow-2xl"
+            className="p-8 lg:p-10 rounded-3xl bg-gradient-to-br from-dark-900 via-dark-950 to-primary-950 text-white shadow-2xl border border-dark-800"
           >
-            <div className="w-20 h-20 mx-auto mb-5 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
-              <FiCheckCircle className="text-5xl" />
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/20 flex items-center justify-center border border-green-500/30">
+              <FiCheckCircle className="text-4xl text-green-400" />
             </div>
-            <h2 className="text-3xl font-bold mb-2">Upload Complete</h2>
-            <p className="text-white/90 mb-4">
-              {resultDoc?.title || selectedFile?.name} encrypted and stored on IPFS.
+
+            <h2 className="text-2xl lg:text-3xl font-bold mb-2 text-center">Document Stored Successfully!</h2>
+            <p className="text-dark-300 text-sm mb-6 text-center max-w-lg mx-auto">
+              "{resultDoc?.title || selectedFile?.name}" has been encrypted with AES-256 and stored on IPFS & Cloudinary.
             </p>
-            {resultDoc?.ipfsCid && (
-              <p className="text-xs font-mono bg-white/10 rounded-lg px-3 py-2 mb-6 break-all">
-                CID: {resultDoc.ipfsCid}
-              </p>
+
+            {/* Storage Badges */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6 max-w-2xl mx-auto text-xs">
+              <div className="p-3 rounded-xl bg-dark-800/80 border border-dark-700 text-left">
+                <span className="text-dark-400 block mb-1">IPFS Primary CID</span>
+                <span className="font-mono text-primary-400 truncate block">
+                  {resultDoc?.ipfsCid ? resultDoc.ipfsCid.substring(0, 18) + "..." : "Pinned"}
+                </span>
+              </div>
+              <div className="p-3 rounded-xl bg-dark-800/80 border border-dark-700 text-left">
+                <span className="text-dark-400 block mb-1">Cloud Backup</span>
+                <span className="font-semibold text-green-400">Backed Up</span>
+              </div>
+              <div className="p-3 rounded-xl bg-dark-800/80 border border-dark-700 text-left">
+                <span className="text-dark-400 block mb-1">Blockchain Verification</span>
+                {bcTxHash || resultDoc?.isOnBlockchain ? (
+                  <span className="font-semibold text-green-400 flex items-center gap-1">
+                    <FiCheckCircle /> Registered
+                  </span>
+                ) : (
+                  <span className="font-semibold text-yellow-400">Pending Registration</span>
+                )}
+              </div>
+            </div>
+
+            {/* BLOCKCHAIN REGISTRATION BUTTON */}
+            {!(bcTxHash || resultDoc?.isOnBlockchain) ? (
+              <div className="p-6 rounded-2xl bg-gradient-to-r from-primary-900/50 to-purple-900/50 border border-primary-500/30 mb-6 text-center max-w-xl mx-auto">
+                <h3 className="font-bold text-lg mb-1 flex items-center justify-center gap-2">
+                  <FiLink className="text-primary-400" />
+                  Register Proof on Ethereum Blockchain
+                </h3>
+                <p className="text-xs text-dark-300 mb-4">
+                  Sign an Ethereum transaction via MetaMask to permanently register this document's CID & SHA-256 hash on-chain.
+                </p>
+                <button
+                  onClick={handleBlockchainRegister}
+                  disabled={isRegisteringBc}
+                  className="btn-primary py-3 px-8 text-sm font-bold flex items-center justify-center gap-2 mx-auto shadow-lg shadow-primary-500/30"
+                >
+                  {isRegisteringBc ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Confirm in MetaMask...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FiLock />
+                      Register on Blockchain
+                    </>
+                  )}
+                </button>
+              </div>
+            ) : (
+              <div className="p-4 rounded-xl bg-green-950/50 border border-green-500/30 mb-6 text-center max-w-xl mx-auto font-mono text-xs">
+                <p className="text-green-400 font-bold mb-1 flex items-center justify-center gap-1">
+                  <FiCheckCircle /> On-Chain Registered!
+                </p>
+                <p className="text-dark-300 truncate">Tx: {bcTxHash || resultDoc?.txHash}</p>
+              </div>
             )}
+
+            {/* Action Navigation */}
             <div className="flex flex-wrap items-center justify-center gap-3">
-              <button onClick={handleNewUpload} className="px-6 py-3 rounded-lg bg-white text-green-700 font-bold hover:bg-green-50 transition-colors">
-                Upload Another
+              <button onClick={handleRemoveFile} className="btn-secondary text-sm">
+                Upload Another Document
               </button>
-              <button onClick={() => navigate("/documents")} className="px-6 py-3 rounded-lg bg-white/20 border border-white/30 text-white font-bold hover:bg-white/30 transition-colors">
-                View Documents
+              <button onClick={() => navigate("/documents")} className="btn-primary text-sm">
+                View All Documents
               </button>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
+      {/* Main Upload Area */}
       {!uploadComplete && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
@@ -305,12 +399,12 @@ const Upload = () => {
                   {isUploading ? (
                     <>
                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Encrypting & Uploading to IPFS...
+                      Processing Storage Pipeline...
                     </>
                   ) : (
                     <>
                       <FiUpload />
-                      Encrypt & Upload to IPFS
+                      Encrypt & Upload Document
                     </>
                   )}
                 </button>
@@ -321,13 +415,13 @@ const Upload = () => {
           <div className="space-y-6">
             <UploadWorkflow currentStep={currentStep} />
             <div className="p-6 rounded-2xl bg-gradient-to-br from-primary-500 to-purple-600 text-white shadow-xl">
-              <h3 className="text-lg font-bold mb-3">Storage Guarantee</h3>
+              <h3 className="text-lg font-bold mb-3">Multi-Tier Architecture</h3>
               <ul className="space-y-2 text-sm text-white/90">
-                <li>1. File validated</li>
-                <li>2. AES-256 encrypted</li>
-                <li>3. SHA-256 hashed</li>
-                <li>4. Encrypted file pinned on IPFS</li>
-                <li>5. Metadata saved in MongoDB</li>
+                <li>1. AES-256 Client-side Encryption</li>
+                <li>2. SHA-256 Cryptographic Hash</li>
+                <li>3. IPFS Decentralized Pinning</li>
+                <li>4. Cloudinary Encrypted Backup</li>
+                <li>5. Ethereum Blockchain Registration</li>
               </ul>
             </div>
           </div>

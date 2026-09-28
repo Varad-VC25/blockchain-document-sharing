@@ -348,6 +348,58 @@ const getCloudStorageAnalytics = async (req, res) => {
   }
 };
 
+
+// PATCH /api/documents/:id/blockchain
+// Body: { txHash, walletAddress }
+const registerOnBlockchain = async (req, res) => {
+  try {
+    const { txHash, walletAddress } = req.body;
+    if (!txHash) {
+      return res.status(400).json({ success: false, message: "txHash is required" });
+    }
+
+    const doc = await Document.findOne({
+      _id: req.params.id,
+      owner: req.user._id,
+      isDeleted: false,
+    });
+
+    if (!doc) {
+      return res.status(404).json({ success: false, message: "Document not found" });
+    }
+
+    doc.txHash = txHash;
+    doc.isOnBlockchain = true;
+    if (walletAddress) {
+      doc.ownerWalletAddress = walletAddress.toLowerCase();
+    }
+    await doc.save();
+
+    try {
+      await AuditLog.createLog({
+        action: "UPDATE",
+        status: "SUCCESS",
+        user: req.user._id,
+        userEmail: req.user.email,
+        walletAddress: doc.ownerWalletAddress,
+        document: doc._id,
+        documentTitle: doc.title,
+        ipfsCid: doc.ipfsCid,
+        txHash,
+        description: "Registered document on Ethereum Blockchain. TxHash: " + txHash,
+      });
+    } catch (e) {}
+
+    return res.status(200).json({
+      success: true,
+      message: "Document blockchain status updated in database",
+      data: { document: doc },
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   uploadDocument,
   getMyDocuments,
@@ -355,4 +407,5 @@ module.exports = {
   deleteDocument,
   getIpfsStatus,
   getCloudStorageAnalytics,
+  registerOnBlockchain,
 };

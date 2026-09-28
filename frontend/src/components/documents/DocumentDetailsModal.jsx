@@ -1,22 +1,58 @@
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FiX, FiDownload, FiShare2, FiCopy, FiExternalLink,
   FiCheckCircle, FiUsers, FiEye, FiClock, FiFileText,
-  FiHash, FiCloud, FiLink
+  FiHash, FiCloud, FiLink, FiLock
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import { formatFileSize, formatDateTime, truncateAddress } from "@utils/formatters";
 import { getFileIcon, getFileColor } from "@utils/fileHelpers";
+import { registerDocumentOnChain } from "@services/blockchainService";
+import { useWallet } from "@context/WalletContext";
+import documentService from "@services/documentService";
 
 const DocumentDetailsModal = ({ document, onClose, onDownload, onShare }) => {
   if (!document) return null;
 
-  const Icon = getFileIcon(document.mimeType, document.originalFileName);
-  const gradient = getFileColor(document.mimeType, document.originalFileName);
+  const { account, connectWallet } = useWallet();
+  const [docState, setDocState] = useState(document);
+  const [isRegistering, setIsRegistering] = useState(false);
+
+  const Icon = getFileIcon(docState.mimeType, docState.originalFileName);
+  const gradient = getFileColor(docState.mimeType, docState.originalFileName);
 
   const copyToClipboard = (text, label) => {
     navigator.clipboard.writeText(text);
     toast.success(label + " copied to clipboard");
+  };
+
+  const handleOnChainRegister = async () => {
+    if (!account) {
+      toast.info("Connecting MetaMask...");
+      const connected = await connectWallet();
+      if (!connected) return;
+    }
+    setIsRegistering(true);
+    try {
+      toast.info("Please confirm transaction in MetaMask...");
+      const res = await registerDocumentOnChain(docState);
+      
+      // Update backend
+      await documentService.updateBlockchainTx(docState._id, res.txHash, account);
+      
+      setDocState({
+        ...docState,
+        isOnBlockchain: true,
+        txHash: res.txHash,
+      });
+
+      toast.success("Document registered on Ethereum Blockchain!");
+    } catch (err) {
+      toast.error(err.message || "Blockchain registration failed");
+    } finally {
+      setIsRegistering(false);
+    }
   };
 
   return (
@@ -49,20 +85,21 @@ const DocumentDetailsModal = ({ document, onClose, onDownload, onShare }) => {
                 <Icon className="text-3xl" />
               </div>
               <div className="flex-1 min-w-0 pr-8">
-                <h2 className="text-2xl font-bold mb-1 truncate">{document.title}</h2>
-                <p className="text-white/80 text-sm truncate">{document.originalFileName}</p>
+                <h2 className="text-2xl font-bold mb-1 truncate">{docState.title}</h2>
+                <p className="text-white/80 text-sm truncate">{docState.originalFileName}</p>
                 <div className="flex flex-wrap gap-2 mt-3">
-                  {document.isOnBlockchain && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/20 backdrop-blur text-xs font-semibold">
+                  {docState.isOnBlockchain ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-green-500/90 backdrop-blur text-xs font-semibold">
                       <FiCheckCircle />
                       Blockchain Verified
                     </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-yellow-500/90 backdrop-blur text-xs font-semibold">
+                      Not On Blockchain
+                    </span>
                   )}
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/20 backdrop-blur text-xs font-semibold">
-                    {formatFileSize(document.fileSize)}
-                  </span>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/20 backdrop-blur text-xs font-semibold uppercase">
-                    {document.category}
+                    {formatFileSize(docState.fileSize)}
                   </span>
                 </div>
               </div>
@@ -71,50 +108,37 @@ const DocumentDetailsModal = ({ document, onClose, onDownload, onShare }) => {
 
           {/* Body */}
           <div className="p-6 space-y-6">
-            {document.description && (
+            {docState.description && (
               <div>
                 <h4 className="text-sm font-semibold text-dark-700 dark:text-dark-300 mb-2 flex items-center gap-2">
                   <FiFileText />
                   Description
                 </h4>
-                <p className="text-dark-600 dark:text-dark-400 text-sm">{document.description}</p>
+                <p className="text-dark-600 dark:text-dark-400 text-sm">{docState.description}</p>
               </div>
             )}
 
-            {document.tags && document.tags.length > 0 && (
-              <div>
-                <h4 className="text-sm font-semibold text-dark-700 dark:text-dark-300 mb-2">Tags</h4>
-                <div className="flex flex-wrap gap-2">
-                  {document.tags.map((tag) => (
-                    <span key={tag} className="px-3 py-1 rounded-full bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 text-sm">
-                      #{tag}
-                    </span>
-                  ))}
+            {/* On-Chain Action Banner */}
+            {!docState.isOnBlockchain && (
+              <div className="p-4 rounded-xl bg-gradient-to-r from-primary-900/20 to-purple-900/20 border border-primary-500/30 flex items-center justify-between gap-4">
+                <div>
+                  <p className="font-bold text-sm text-dark-900 dark:text-white flex items-center gap-1.5">
+                    <FiLock className="text-primary-600" />
+                    Register on Blockchain
+                  </p>
+                  <p className="text-xs text-dark-500 mt-0.5">
+                    Permanently register this document's SHA-256 hash & CID on Ethereum.
+                  </p>
                 </div>
+                <button
+                  onClick={handleOnChainRegister}
+                  disabled={isRegistering}
+                  className="btn-primary py-2 px-4 text-xs font-bold whitespace-nowrap flex items-center gap-1.5"
+                >
+                  {isRegistering ? "Processing..." : "Register Now"}
+                </button>
               </div>
             )}
-
-            {/* Statistics */}
-            <div>
-              <h4 className="text-sm font-semibold text-dark-700 dark:text-dark-300 mb-2">Statistics</h4>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="p-3 rounded-lg bg-dark-50 dark:bg-dark-800 text-center">
-                  <FiEye className="mx-auto mb-1 text-primary-600" />
-                  <p className="text-2xl font-bold text-dark-900 dark:text-white">{document.viewCount}</p>
-                  <p className="text-xs text-dark-500">Views</p>
-                </div>
-                <div className="p-3 rounded-lg bg-dark-50 dark:bg-dark-800 text-center">
-                  <FiDownload className="mx-auto mb-1 text-blue-600" />
-                  <p className="text-2xl font-bold text-dark-900 dark:text-white">{document.downloadCount}</p>
-                  <p className="text-xs text-dark-500">Downloads</p>
-                </div>
-                <div className="p-3 rounded-lg bg-dark-50 dark:bg-dark-800 text-center">
-                  <FiUsers className="mx-auto mb-1 text-purple-600" />
-                  <p className="text-2xl font-bold text-dark-900 dark:text-white">{document.sharedWith?.length || 0}</p>
-                  <p className="text-xs text-dark-500">Shared</p>
-                </div>
-              </div>
-            </div>
 
             {/* Cryptographic Info */}
             <div>
@@ -126,11 +150,11 @@ const DocumentDetailsModal = ({ document, onClose, onDownload, onShare }) => {
                 <div className="p-3 rounded-lg bg-dark-50 dark:bg-dark-800">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-semibold text-dark-500 uppercase">SHA-256 Hash</span>
-                    <button onClick={() => copyToClipboard(document.fileHash, "Hash")} className="text-primary-600 hover:text-primary-700">
+                    <button onClick={() => copyToClipboard(docState.fileHash, "Hash")} className="text-primary-600 hover:text-primary-700">
                       <FiCopy />
                     </button>
                   </div>
-                  <p className="text-xs font-mono text-dark-700 dark:text-dark-300 break-all">{document.fileHash}</p>
+                  <p className="text-xs font-mono text-dark-700 dark:text-dark-300 break-all">{docState.fileHash}</p>
                 </div>
                 <div className="p-3 rounded-lg bg-dark-50 dark:bg-dark-800">
                   <div className="flex items-center justify-between mb-1">
@@ -138,62 +162,39 @@ const DocumentDetailsModal = ({ document, onClose, onDownload, onShare }) => {
                       <FiCloud />
                       IPFS CID
                     </span>
-                    <button onClick={() => copyToClipboard(document.ipfsCid, "CID")} className="text-primary-600 hover:text-primary-700">
+                    <button onClick={() => copyToClipboard(docState.ipfsCid, "CID")} className="text-primary-600 hover:text-primary-700">
                       <FiCopy />
                     </button>
                   </div>
-                  <p className="text-xs font-mono text-dark-700 dark:text-dark-300 break-all">{document.ipfsCid}</p>
+                  <p className="text-xs font-mono text-dark-700 dark:text-dark-300 break-all">{docState.ipfsCid}</p>
                 </div>
-                <div className="p-3 rounded-lg bg-dark-50 dark:bg-dark-800">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-semibold text-dark-500 uppercase flex items-center gap-1">
-                      <FiLink />
-                      Owner Wallet
-                    </span>
-                    <button onClick={() => copyToClipboard(document.ownerWalletAddress, "Address")} className="text-primary-600 hover:text-primary-700">
-                      <FiCopy />
-                    </button>
+                {docState.txHash && (
+                  <div className="p-3 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-semibold text-green-700 dark:text-green-400 uppercase flex items-center gap-1">
+                        <FiLink />
+                        Blockchain Tx Hash
+                      </span>
+                      <button onClick={() => copyToClipboard(docState.txHash, "TxHash")} className="text-green-600">
+                        <FiCopy />
+                      </button>
+                    </div>
+                    <p className="text-xs font-mono text-green-800 dark:text-green-300 break-all">{docState.txHash}</p>
                   </div>
-                  <p className="text-xs font-mono text-dark-700 dark:text-dark-300">{truncateAddress(document.ownerWalletAddress)}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Timestamps */}
-            <div>
-              <h4 className="text-sm font-semibold text-dark-700 dark:text-dark-300 mb-2 flex items-center gap-2">
-                <FiClock />
-                Timestamps
-              </h4>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between p-2 rounded-lg bg-dark-50 dark:bg-dark-800">
-                  <span className="text-dark-500">Created</span>
-                  <span className="font-medium text-dark-900 dark:text-white">{formatDateTime(document.createdAt)}</span>
-                </div>
-                <div className="flex justify-between p-2 rounded-lg bg-dark-50 dark:bg-dark-800">
-                  <span className="text-dark-500">Updated</span>
-                  <span className="font-medium text-dark-900 dark:text-white">{formatDateTime(document.updatedAt)}</span>
-                </div>
+                )}
               </div>
             </div>
           </div>
 
           {/* Footer Actions */}
           <div className="sticky bottom-0 flex items-center gap-3 p-6 border-t border-dark-200 dark:border-dark-800 bg-white dark:bg-dark-900 rounded-b-2xl">
-            <button onClick={() => onDownload(document)} className="btn-primary flex-1 flex items-center justify-center gap-2">
+            <button onClick={() => onDownload(docState)} className="btn-primary flex-1 flex items-center justify-center gap-2">
               <FiDownload />
               Download
             </button>
-            <button onClick={() => onShare(document)} className="btn-secondary flex-1 flex items-center justify-center gap-2">
+            <button onClick={() => onShare(docState)} className="btn-secondary flex-1 flex items-center justify-center gap-2">
               <FiShare2 />
               Share
-            </button>
-            <button
-              onClick={() => window.open("https://ipfs.io/ipfs/" + document.ipfsCid, "_blank")}
-              className="btn-outline flex items-center gap-2"
-              title="View on IPFS"
-            >
-              <FiExternalLink />
             </button>
           </div>
         </motion.div>
