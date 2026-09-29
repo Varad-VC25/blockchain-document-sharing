@@ -201,7 +201,7 @@ const Upload = () => {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="p-8 lg:p-10 rounded-3xl bg-gradient-to-br from-dark-900 via-dark-950 to-primary-950 text-white shadow-2xl border border-dark-800"
+            className="p-8 lg:p-10 rounded-3xl bg-gradient-to-br from-blue-600 via-purple-600 to-fuchsia-600 text-white shadow-2xl border border-purple-400/50"
           >
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/20 flex items-center justify-center border border-green-500/30">
               <FiCheckCircle className="text-4xl text-green-400" />
@@ -214,36 +214,36 @@ const Upload = () => {
 
             {/* Storage Badges */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6 max-w-2xl mx-auto text-xs">
-              <div className="p-3 rounded-xl bg-dark-800/80 border border-dark-700 text-left">
-                <span className="text-dark-400 block mb-1">IPFS Primary CID</span>
-                <span className="font-mono text-primary-400 truncate block">
+              <div className="p-3 rounded-xl bg-white/10 border border-white/20 text-left">
+                <span className="text-white/70 block mb-1">IPFS Primary CID</span>
+                <span className="font-mono text-white truncate block">
                   {resultDoc?.ipfsCid ? resultDoc.ipfsCid.substring(0, 18) + "..." : "Pinned"}
                 </span>
               </div>
-              <div className="p-3 rounded-xl bg-dark-800/80 border border-dark-700 text-left">
-                <span className="text-dark-400 block mb-1">Cloud Backup</span>
-                <span className="font-semibold text-green-400">Backed Up</span>
+              <div className="p-3 rounded-xl bg-white/10 border border-white/20 text-left">
+                <span className="text-white/70 block mb-1">Cloud Backup</span>
+                <span className="font-semibold text-green-200">Backed Up</span>
               </div>
-              <div className="p-3 rounded-xl bg-dark-800/80 border border-dark-700 text-left">
-                <span className="text-dark-400 block mb-1">Blockchain Verification</span>
+              <div className="p-3 rounded-xl bg-white/10 border border-white/20 text-left">
+                <span className="text-white/70 block mb-1">Blockchain Verification</span>
                 {bcTxHash || resultDoc?.isOnBlockchain ? (
-                  <span className="font-semibold text-green-400 flex items-center gap-1">
+                  <span className="font-semibold text-green-200 flex items-center gap-1">
                     <FiCheckCircle /> Registered
                   </span>
                 ) : (
-                  <span className="font-semibold text-yellow-400">Pending Registration</span>
+                  <span className="font-semibold text-yellow-200">Pending Registration</span>
                 )}
               </div>
             </div>
 
             {/* BLOCKCHAIN REGISTRATION BUTTON */}
             {!(bcTxHash || resultDoc?.isOnBlockchain) ? (
-              <div className="p-6 rounded-2xl bg-gradient-to-r from-primary-900/50 to-purple-900/50 border border-primary-500/30 mb-6 text-center max-w-xl mx-auto">
+              <div className="p-6 rounded-2xl bg-white/10 border border-white/20 mb-6 text-center max-w-xl mx-auto">
                 <h3 className="font-bold text-lg mb-1 flex items-center justify-center gap-2">
-                  <FiLink className="text-primary-400" />
+                      <FiLink className="text-white" />
                   Register Proof on Ethereum Blockchain
                 </h3>
-                <p className="text-xs text-dark-300 mb-4">
+                <p className="text-xs text-white/80 mb-4">
                   Sign an Ethereum transaction via MetaMask to permanently register this document's CID & SHA-256 hash on-chain.
                 </p>
                 <button
@@ -265,11 +265,11 @@ const Upload = () => {
                 </button>
               </div>
             ) : (
-              <div className="p-4 rounded-xl bg-green-950/50 border border-green-500/30 mb-6 text-center max-w-xl mx-auto font-mono text-xs">
-                <p className="text-green-400 font-bold mb-1 flex items-center justify-center gap-1">
+              <div className="p-4 rounded-xl bg-white/10 border border-white/20 mb-6 text-center max-w-xl mx-auto font-mono text-xs">
+                <p className="text-green-200 font-bold mb-1 flex items-center justify-center gap-1">
                   <FiCheckCircle /> On-Chain Registered!
                 </p>
-                <p className="text-dark-300 truncate">Tx: {bcTxHash || resultDoc?.txHash}</p>
+                <p className="text-white/80 truncate">Tx: {bcTxHash || resultDoc?.txHash}</p>
               </div>
             )}
 

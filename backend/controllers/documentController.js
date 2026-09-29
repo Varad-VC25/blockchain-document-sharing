@@ -262,12 +262,10 @@ const deleteDocument = async (req, res) => {
       return res.status(404).json({ success: false, message: "Document not found" });
     }
 
-    doc.isDeleted = true;
-    doc.deletedAt = new Date();
-    await doc.save();
-
     if (doc.ipfsCid) await unpinFromIPFS(doc.ipfsCid);
     if (doc.cloudinaryPublicId) await deleteEncryptedBackup(doc.cloudinaryPublicId);
+
+    await doc.deleteOne();
 
     try {
       await AuditLog.createLog({

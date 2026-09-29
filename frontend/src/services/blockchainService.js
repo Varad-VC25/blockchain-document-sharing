@@ -146,3 +146,31 @@ export const grantAccessOnChain = async (ipfsCid, recipientAddress) => {
     throw new Error(msg);
   }
 };
+
+
+// -- Revoke Access On-Chain ----------------------------------------
+export const revokeAccessOnChain = async (ipfsCid, recipientAddress) => {
+  try {
+    const contract = await getSignerContract();
+    console.log("Revoking access on-chain for CID:", ipfsCid, "from:", recipientAddress);
+
+    const tx = await contract.revokeAccess(ipfsCid, recipientAddress);
+    console.log("Revoke access transaction submitted:", tx.hash);
+
+    const receipt = await tx.wait(1);
+    console.log("Revoke access confirmed in block:", receipt.blockNumber);
+
+    return {
+      success: true,
+      txHash: tx.hash,
+      blockNumber: receipt.blockNumber,
+    };
+  } catch (error) {
+    console.error("Revoke access on-chain error:", error);
+    let msg = error.reason || error.message || "Revoke access transaction failed";
+    if (String(msg).includes("user rejected")) {
+      msg = "Transaction rejected in MetaMask";
+    }
+    throw new Error(msg);
+  }
+};

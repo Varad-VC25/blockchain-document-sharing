@@ -8,6 +8,7 @@ import DocumentListItem from "@components/documents/DocumentListItem";
 import DocumentFilters from "@components/documents/DocumentFilters";
 import DocumentDetailsModal from "@components/documents/DocumentDetailsModal";
 import ShareModal from "@components/documents/ShareModal";
+import RevokeModal from "@components/documents/RevokeModal";
 import EmptyState from "@components/documents/EmptyState";
 import Loader from "@components/common/Loader";
 import documentService from "@services/documentService";
@@ -21,6 +22,7 @@ const Documents = () => {
   const [viewMode, setViewMode] = useState("grid");
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [shareDoc, setShareDoc] = useState(null);
+  const [revokeDoc, setRevokeDoc] = useState(null);
 
   const fetchDocuments = async () => {
     setLoading(true);
@@ -148,6 +150,7 @@ const Documents = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
           {filteredDocs.map((doc) => (
             <DocumentCard
+              onManageAccess={(d) => setRevokeDoc(d)}
               key={doc._id}
               document={doc}
               onView={handleView}
@@ -170,6 +173,14 @@ const Documents = () => {
             />
           ))}
         </div>
+      )}
+
+      {revokeDoc && (
+        <RevokeModal
+          document={revokeDoc}
+          onClose={() => setRevokeDoc(null)}
+          onSuccess={fetchDocuments}
+        />
       )}
 
       {shareDoc && (

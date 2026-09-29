@@ -7,7 +7,7 @@ import {
 import { formatFileSize, formatRelativeTime } from "@utils/formatters";
 import { getFileIcon, getFileColor } from "@utils/fileHelpers";
 
-const DocumentCard = ({ document, onView, onDownload, onShare, onDelete }) => {
+const DocumentCard = ({ document, onView, onDownload, onShare, onDelete, onManageAccess }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const Icon = getFileIcon(document.mimeType, document.originalFileName);
   const gradient = getFileColor(document.mimeType, document.originalFileName);
@@ -45,14 +45,16 @@ const DocumentCard = ({ document, onView, onDownload, onShare, onDelete }) => {
                   <FiDownload />
                   Download
                 </button>
+                
+                {document.sharedWith && document.sharedWith.length > 0 && (
+                  <button onClick={() => { onManageAccess(document); setMenuOpen(false); }} className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20">
+                    <FiUsers />
+                    Manage Access ({document.sharedWith.length})
+                  </button>
+                )}
                 <button onClick={() => { onShare(document); setMenuOpen(false); }} className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-dark-700 dark:text-dark-300 hover:bg-dark-50 dark:hover:bg-dark-800">
                   <FiShare2 />
                   Share
-                </button>
-                <div className="border-t border-dark-100 dark:border-dark-800"></div>
-                <button onClick={() => { onDelete(document); setMenuOpen(false); }} className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
-                  <FiTrash2 />
-                  Delete
                 </button>
               </div>
             </>
@@ -114,12 +116,24 @@ const DocumentCard = ({ document, onView, onDownload, onShare, onDelete }) => {
               {document.downloadCount}
             </span>
           </div>
-          {document.sharedWith && document.sharedWith.length > 0 && (
-            <span className="flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400">
-              <FiUsers />
-              {document.sharedWith.length}
-            </span>
-          )}
+          <div className="flex items-center gap-3">
+            {document.sharedWith && document.sharedWith.length > 0 && (
+              <span className="flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400">
+                <FiUsers />
+                {document.sharedWith.length}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => onDelete(document)}
+              title="Delete document"
+              aria-label={"Delete " + document.title}
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+            >
+              <FiTrash2 />
+              Delete
+            </button>
+          </div>
         </div>
       </div>
     </motion.div>
